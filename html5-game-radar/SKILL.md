@@ -36,11 +36,12 @@ Google 搜索量 ↑  但内容页 ↓（SEO 空白）
 ## 工作流程
 
 ```
-Step 1: itch.io 监测（最新 HTML5 游戏，?sort=date）
-Step 2: Reddit r/webgames 新帖扫描
+Step 1: itch.io 监测（基础页 /games/newest + web_flag 过滤；带过滤参数 URL 会触发 CF）
+Step 1.5: 商业门户源（CrazyGames __NEXT_DATA__ / Poki RTK 缓存，官方热度数据）
+Step 2: Reddit 新帖扫描（直抓全被拦，需 SG 节点或 Tavily 缓存兜底）
 Step 3: Google 搜索量 + 竞争度验证
 Step 4: X/Twitter 扩散信号（用游戏名搜索）
-Step 5: 汇总评分 + 排序
+Step 5: 汇总评分 + 排序（热度证据分级 + 版权红旗）
 Step 6: 推送 Feishu
 ```
 
@@ -48,12 +49,18 @@ Step 6: 推送 Feishu
 
 ## Step 1: itch.io HTML5 新游戏抓取
 
-**目标 URL：** `https://itch.io/games/tag-html5?sort=date`
+**目标 URL（主路径）：** `https://itch.io/games/newest`（基础页）
 
-**⚠️ 重要：** itch.io 的 votes 和 date 是懒加载 JS，无法从 DOM 提取。评分改用「标题关键词 + 类型」作为主要打分依据。
+**⚠️ 实测坑（2026-09-05，两轮验证）：**
+- **带过滤参数的 URL（`/platform-web/free`、`?sort=date` 等）稳定触发 Cloudflare challenge（403）**——一律用基础页，靠页面元素自过滤
+- `?sort=date` 实测被 itch 忽略（列表混 2015-2026 的 game_id），「新」信号需按发布日期/game_id 独立取证，不能吃排序红利
+- votes/date 懒加载无法从 DOM 提取；热度改看详情页 JSON-LD `AggregateRating`（ratings 数/均分）
+- curl 需带浏览器 UA；本地直连不通时走代理（动作间随机等 5-15s，同站 ≤6 req/min）
 
-**Browser 操作流程：**
-1. `browser(action="navigate")` → `https://itch.io/games/tag-html5?sort=date`
+**过滤 web 可玩（替代 platform-web 过滤参数）：** 解析 `game_cell` 内 `<span class="web_flag">Play in browser</span>`，含此标记 = 浏览器可玩；同时过滤标题/genre 含 jam/Ludum/GMTK 的 Jam 游戏。
+
+**Browser 操作流程（备用，curl 被拦时）：**
+1. `browser(action="navigate")` → `https://itch.io/games/newest`
 2. 滚动 3 次，每次 `window.scrollBy(0, 800)`
 3. `browser evaluate` 提取游戏列表
 
@@ -75,7 +82,28 @@ document.querySelectorAll('.game_cell').forEach(cell => {
 
 ---
 
-## Step 2: Reddit r/webgames 扫描
+## Step 1.5: 商业门户源（平台已验证热度，2026-09-05 实测新增）
+
+两个门户的新游页是 SSR，一次请求拿全官方热度数据，证据强度高于 itch 无数字列表：
+
+**CrazyGames：** `https://www.crazygames.com/new` → `<script id="__NEXT_DATA__">` 内嵌 JSON，约 70 个新游带 **totalPlays / totalLikes / gameThumbLabels（hot / top-rated / new 官方标签）**。注意 `/new-games` 是 404。解析：
+```javascript
+const data = JSON.parse(document.getElementById('__NEXT_DATA__').textContent);
+// 新游数组在 pageProps 下，字段以实际结构为准（name/slug/totalPlays/totalLikes/labels）
+```
+
+**Poki：** `https://poki.com/en/new` → 页面 RTK 内嵌缓存 JSON，约 136 游带 `isNew` 徽章；详情页 getGame 缓存有赞/踩数（播放量平台不公开，标待验证）。详情页点赞只抽查，别全量刷。
+
+**Game Jolt：** ❌ 实测不可抓——列表页 SPA 空壳（无 __NUXT__ 数据），API 猜测路径返回伪 200 HTML 壳。标记 skip，待逆向 XHR 或 Playwright 渲染，不阻塞主流程。
+
+---
+
+## Step 2: Reddit 新帖扫描（r/webgames + r/incremental_games）
+
+**⚠️ 实测现状（2026-09-05）：** Reddit 直抓全路径被拦（www/old 的 JSON API 403、Tavily extract 失败、web_reader 500）。可用路径：
+- 有 SG 节点：reddit-research CLI（下述原路径）
+- 无节点：Tavily `site:reddit.com` 近 30 天查询兜底（votes 只能从搜索缓存零星取证，标待验证）
+- **强信号产地实测是 r/incremental_games**（案例：525 votes / 108 comments 的 cozy 整理×增量帖），与 r/webgames 并列扫
 
 **使用 reddit-research skill 的 CLI：**
 ```bash
@@ -156,6 +184,11 @@ document.querySelectorAll('article[data-testid="tweet"]').forEach(t => {
 
 ⚠️ **注意**：itch.io 票数和发布日期为懒加载，无法从 DOM 提取。评分系统改用以下替代信号：
 
+**热度证据分级（不同源数字不可比，先分级再横向排序）：**
+官方播放数（CrazyGames totalPlays / 平台标签）＞ 社区 votes（Reddit）＞ JSON-LD ratings（itch 详情页）＞ 无数据（标「待验证」，该维度计 0 分不猜数）。
+
+**版权红旗：** 候选含 IP 二创（PvZ/Sonic/任天堂系等）→ 照常入池观察机制，但打红旗标记：禁止作微创新母本、禁止上传分发。
+
 | 信号维度 | 分值 | 判断依据 |
 |---------|------|---------|
 | **标题关键词** | +1~5 | 含「new」「free」「multiplayer」「io」=+2；含「online」「survival」「roguelike」=+1 |
@@ -232,3 +265,10 @@ document.querySelectorAll('article[data-testid="tweet"]').forEach(t => {
 
 - SEO 套利方法论：见 `references/seo_arbitrage_logic.md`
 - 平台首发特点：见 `references/platform_signals.md`
+
+---
+
+## evo 变更记录
+
+- **2026-09-05 evo 分支首版修订**（依据两轮实测，验证过程见 fork 工作室 goal-minigame-pipeline 的 raw/radar_s1-s3）：①Step 1 主路径改基础页+web_flag 自过滤（带过滤参数 URL 必触发 CF；sort=date 不可靠）②新增 Step 1.5 商业门户源（CrazyGames __NEXT_DATA__ 官方播放数 / Poki RTK 缓存 / Game Jolt 标 skip）③Step 2 标注 Reddit 被拦现状与 r/incremental_games 强信号产地 ④Step 5 增加热度证据分级与版权红旗。
+- 修订提出方：baidang201 工作室（本 fork 维护者）；上游 kennyzir/7deer_skills 如采纳可整段合入。
