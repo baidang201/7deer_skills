@@ -37,3 +37,11 @@ node .agent/skills/seo-auditor/resources/audit_rules.js ./out/index.html
 3.  **Schema**: Use `FAQPage` (5+ Qs) or `HowTo` to capture rich results.
 4.  **Internal Links**: Every page needs 3-6 outgoing links in a "Related" section.
 5.  **Performance**: HTML size < 150KB, use `<Image>` component.
+
+
+## 消费级工具站增量项（evo 实测增补 2026-09-07）
+
+- 动态时间标记 title（Last updated 可见性）——AI 引用偏好的新鲜度信号。
+- FAQ accordion 落地（FAQPage schema 与页面可见文本一致，不可只注 schema）。
+- HTML 体积 <150KB（首屏效率影响体验分与爬虫预算）。
+- 与通用站点框架互查时，以上三项为工具站特有增量；框架通用项照旧。

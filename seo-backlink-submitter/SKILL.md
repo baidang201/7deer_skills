@@ -96,3 +96,9 @@ python scripts/quick_submit.py https://aitoolshunt.com/submit \
 - Python 3.8+
 - playwright (`pip install playwright && playwright install chromium`)
 - aiohttp（用于异步 HTTP 请求）
+
+
+## 目录清单前置 check（evo 实测增补 2026-09-07）
+
+- 默认目录清单面向 AI Agent/Skills 开发者市场；**消费级工具站提交前必须自建清单**，默认清单错配率高。
+- AI 工具目录多数已转付费：实测 check-only 3/5 paid、1 需登录、1 免费——提交前逐个核实时价与收录标准，勿按清单盲投。
