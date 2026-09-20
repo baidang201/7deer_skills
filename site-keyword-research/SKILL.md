@@ -403,3 +403,10 @@ https://www.google.com/search?q=<URL编码关键词>&hl=en
 
 - 完整报告模板：`references/output-template.md`
 - 单关键词竞争度分析：`keyword-competition-analysis/SKILL.md`
+
+---
+
+## 本机实测增补（evo · 2026-09-16 校准波巡检回写）
+
+- **品牌词种子法**：用竞品品牌词做 suggest 递归种子，可低成本取其功能族词面（实测某转写品牌种子 → compressor/converter/notetaker 族词面全出），比通用词根种子更适合竞品功能情报
+- **通道注**：suggest API 境内直连不通，需代理通道；动作间 1.5-3.5s 随机间隔
