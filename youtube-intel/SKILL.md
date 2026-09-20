@@ -379,3 +379,10 @@ memory/content-discovery/{sub-category-slug}/{date}.md
 - **置信度必须标注**，不掩盖数据来源的局限性
 - **Shorts 和长视频分开分析**，两者是不同市场
 - **数据保存到 memory**，形成积累，不每次从零开始
+
+---
+
+## 本机实测增补（evo · 2026-09-20 校准波巡检回写）
+
+- **数据获取可零 key 化**：YouTube 搜索结果页 `ytInitialData` 为服务端渲染，curl 直读即可解析（实测单页 1.5MB / 168 条视频标题），Discovery 模式的数据获取步无需浏览器/API key
+- **解析注**：标题正则按 `"title":{"runs":[{"text":"..."}]` 结构取；动作间保持随机间隔
