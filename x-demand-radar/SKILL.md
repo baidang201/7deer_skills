@@ -413,3 +413,9 @@ document.cookie = "auth_token=06dec19f563932f39d96f93e9d8c005d3de9b7a9; domain=.
 - GitHub Trending: https://github.com/trending?since=daily
 - Product Hunt: https://www.producthunt.com/
 - Hacker News: https://news.ycombinator.com/
+
+---
+
+## 本机实测增补（evo · 2026-09-13 校准波巡检回写）
+
+- **登录墙判定以内容节点存在为准，不是 HTTP 状态码**：匿名请求搜索页可返回 200 + 完整页面壳但零推文数据（实测 296KB 响应无任何 article/tweetText 节点）——探测通道可用性必须验证 `article` / `[data-testid="tweetText"]` 节点存在
