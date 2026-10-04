@@ -63,3 +63,8 @@ Run the build to ensure everything is correct:
 ```bash
 npm run build
 ```
+---
+
+## 本机实测增补（evo · 2026-09-23 校准波巡检回写）
+
+- **字幕提取通道反爬实证**：`youtube-transcript-api` 直连与代理均 RequestBlocked（timedtext 端点对非浏览器客户端收紧）——第一环在本环境不可用；元数据通道（搜索页 ytInitialData）不受影响。字幕如需走通须浏览器上下文渲染
